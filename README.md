@@ -4,7 +4,7 @@ Production-ready Ethereum analytics API monetized via x402 micropayments on Base
 
 ## Overview
 
-Q-guard provides high-value Ethereum onchain data to AI agents, MEV bots, and DeFi traders through a simple pay-per-request model. No subscriptions, no API keys—just real-time data paid for with USDC micropayments.
+Q-guard is an Ethereum analytics API demonstrating the x402 micropayment protocol. It provides real-time gas predictions through a pay-per-request model using USDC on Base Sepolia testnet.
 
 **Key Features:**
 - Real-time gas prediction with exponential weighted average algorithm
@@ -65,17 +65,7 @@ TEST_WALLET_ADDRESS=0xYourTestWalletAddress
 TEST_WALLET_PRIVATE_KEY=0xYourTestWalletPrivateKey
 ```
 
-### 3. Get Testnet Funds
-
-**Base Sepolia ETH:**
-- Visit: https://www.coinbase.com/faucets/base-ethereum-goerli-faucet
-- Enter your test wallet address
-
-**Base Sepolia USDC:**
-- Bridge from Ethereum Sepolia or use a testnet faucet
-- Contract: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`
-
-### 4. Run with Docker
+### 3. Run with Docker
 
 ```bash
 docker-compose up -d
@@ -83,7 +73,7 @@ docker-compose up -d
 
 The API will be available at `http://localhost:8080`
 
-### 5. Run Locally
+### 4. Run Locally
 
 ```bash
 # Start Redis
@@ -261,16 +251,6 @@ curl -H "X-Payment: 0x<transaction_hash>" \
 ```
 
 ## Testing
-
-### Test Scripts
-
-```bash
-# Test all public endpoints
-bash scripts/test_endpoints.sh
-
-# Get testnet funding instructions
-bash scripts/fund_testnet.sh
-```
 
 ### Test Agent
 
@@ -505,41 +485,9 @@ docker-compose logs redis
 
 ## Monitoring
 
-### Metrics Available
-
-- Total payments processed
-- Daily revenue in USD
-- Request count per endpoint
-- Cache hit rate
-- Average response time
-- Uptime
-
 ### WebSocket Dashboard
 
 Connect to `ws://localhost:8080/ws/dashboard` for real-time metrics updated every second.
-
-## Roadmap
-
-### Phase 2 (Next)
-- MEV opportunity detection endpoint
-- Transaction simulation with REVM
-- Premium pricing ($0.10 per request)
-
-### Phase 3
-- ERC-8004 agent reputation integration
-- Dynamic pricing based on reputation
-- Onchain agent registry
-
-### Phase 4
-- Additional endpoints: wallet risk, token safety, DeFi yields, NFT analytics
-- Batch request support
-- Historical data queries
-
-### Phase 5
-- Production deployment on Base mainnet
-- Prometheus metrics export
-- CI/CD pipeline
-- Scale to 1000+ requests/minute
 
 ## License
 
@@ -559,22 +507,6 @@ Contributions welcome! Please:
 - **GitHub Issues:** https://github.com/mjohnson518/Q-guard/issues
 - **x402 Documentation:** https://x402.org
 - **Base Sepolia Faucet:** https://www.coinbase.com/faucets/base-ethereum-goerli-faucet
-
-## Goals
-
-**30-Day Target:** $1K MRR  
-**12-Month Target:** $100K MRR
-
-**Revenue Model:**
-- Gas predictions: $0.01 per request
-- MEV opportunities: $0.10 per request
-- Premium analytics: $0.02-0.05 per request
-
-**Target Customers:**
-- AI agents building onchain applications
-- MEV bots seeking profitable opportunities
-- DeFi traders optimizing transaction timing
-- Analytics platforms needing reliable data
 
 ---
 
