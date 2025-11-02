@@ -4,7 +4,7 @@ Production-ready Ethereum analytics API monetized via x402 micropayments on Base
 
 ## Overview
 
-Q-guard is an experimental Ethereum analytics API demonstrating the x402 micropayment protocol. It provides real-time gas predictions through a pay-per-request model using USDC on Base Sepolia testnet.
+Q-guard is an Ethereum analytics API demonstrating the x402 micropayment protocol. It provides real-time gas predictions through a pay-per-request model using USDC on Base Sepolia testnet.
 
 **Key Features:**
 - Real-time gas prediction with exponential weighted average algorithm
