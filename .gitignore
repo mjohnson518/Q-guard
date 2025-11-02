@@ -1,0 +1,15 @@
+/target
+.env
+*.log
+*.swp
+.DS_Store
+redis-data/
+Cargo.lock
+
+# Internal documentation (never commit)
+IMPLEMENTATION_SUMMARY.md
+TESTING_LOG.md
+TESTING_RESULTS.md
+*_internal.md
+*_notes.md
+
