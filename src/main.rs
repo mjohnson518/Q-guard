@@ -7,7 +7,7 @@ use axum::{
 use q_guard::{
     config::Config,
     handlers::*,
-    middleware::{create_rate_limit_layer, x402_middleware_layer, X402Middleware},
+    middleware::{create_rate_limit_layer, extract_agent_address, x402_middleware_layer, X402Middleware},
     services::*,
 };
 use std::sync::Arc;
@@ -42,7 +42,15 @@ async fn main() -> Result<()> {
         .await?,
     );
     let analytics = Arc::new(Analytics::new(cache.clone()));
-    let _reputation = Arc::new(MockReputationService::new());
+    
+    // Initialize reputation service (no contract deployed yet, uses mock)
+    let reputation = Arc::new(
+        ReputationService::new(
+            ethereum.primary.clone(),
+            cache.clone(),
+            None, // No contract deployed yet
+        ).await
+    );
     
     // Initialize MEV services (optional - requires WebSocket)
     // For now, using a placeholder - in production, configure ETH_WS_URL in .env
@@ -94,6 +102,7 @@ async fn main() -> Result<()> {
     let app_state = AppState {
         ethereum: ethereum.clone(),
         analytics: analytics.clone(),
+        reputation: reputation.clone(),
     };
     
     let mev_state = MEVState {
@@ -101,6 +110,7 @@ async fn main() -> Result<()> {
         mempool: mempool.clone(),
         mev_detector: mev_detector.clone(),
         analytics: analytics.clone(),
+        reputation: reputation.clone(),
     };
     
     let health_state = HealthState {
@@ -125,6 +135,7 @@ async fn main() -> Result<()> {
         .route(
             "/api/gas/prediction",
             get(predict_gas)
+                .layer(axum_middleware::from_fn(extract_agent_address))
                 .layer(axum_middleware::from_fn({
                     let x402 = x402_gas.clone();
                     move |req, next| {
@@ -138,6 +149,7 @@ async fn main() -> Result<()> {
         .route(
             "/api/mev/opportunities",
             get(get_mev_opportunities)
+                .layer(axum_middleware::from_fn(extract_agent_address))
                 .layer(axum_middleware::from_fn({
                     let x402 = x402_mev.clone();
                     move |req, next| {

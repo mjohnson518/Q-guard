@@ -9,7 +9,7 @@ use ethers::{
 use std::sync::Arc;
 
 pub struct EthereumService {
-    primary: Arc<Provider<Http>>,
+    pub primary: Arc<Provider<Http>>,
     fallback: Option<Arc<Provider<Http>>>,
     cache: Arc<CacheService>,
 }

@@ -22,6 +22,9 @@ pub enum QGuardError {
     #[error("Insufficient reputation: {current} < {required}")]
     InsufficientReputation { current: u64, required: u64 },
     
+    #[error("Reputation error: {0}")]
+    ReputationError(String),
+    
     #[error("RPC error: {0}")]
     RpcError(#[from] ethers::providers::ProviderError),
     
