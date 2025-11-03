@@ -1,6 +1,6 @@
 # Q-guard
 
-Production-ready Ethereum analytics API monetized via x402 micropayments on Base Sepolia testnet.
+Ethereum analytics API monetized via x402 micropayments on Base Sepolia testnet.
 
 ## Overview
 
@@ -51,6 +51,7 @@ cp env.example .env
 # Ethereum Mainnet (for data)
 ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
 ETH_RPC_FALLBACK=https://mainnet.infura.io/v3/YOUR_BACKUP_KEY
+ETH_WS_URL=wss://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
 
 # Base Sepolia (for payments)
 BASE_SEPOLIA_RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
@@ -134,6 +135,8 @@ Real-time stats updates every second.
 
 #### Gas Prediction ($0.01 USDC)
 
+Real-time gas price prediction for the next Ethereum block.
+
 **Without Payment:**
 ```bash
 GET /api/gas/prediction
@@ -187,6 +190,71 @@ curl -H "X-Payment: 0x<transaction_hash>" \
   "timestamp": "2025-11-02T10:30:00Z",
   "cache_hit": true,
   "data_source": "ethereum-mainnet",
+  "request_id": "uuid-here"
+}
+```
+
+#### MEV Opportunities ($0.10 USDC)
+
+Detect profitable MEV opportunities in the mempool (sandwich attacks, arbitrage, etc).
+
+**Without Payment:**
+```bash
+GET /api/mev/opportunities
+```
+
+**Response (402 Payment Required):**
+```json
+{
+  "success": false,
+  "error": "Payment required: 0.10 USDC",
+  "error_code": "PAYMENT_REQUIRED",
+  "payment_instructions": {
+    "type": "x402.payment_required",
+    "version": "1.0.0",
+    "payment": {
+      "chain": "base-sepolia",
+      "asset": "USDC",
+      "amount": "0.10",
+      "recipient": "0xYourAddress",
+      "facilitator": "https://x402-facilitator.example.com"
+    }
+  }
+}
+```
+
+**With Payment:**
+```bash
+curl -H "X-Payment: 0x<transaction_hash>" \
+  http://localhost:8080/api/mev/opportunities
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "opportunity_type": "Sandwich",
+      "profit_usd": 25.50,
+      "gas_cost_usd": 5.50,
+      "net_profit_usd": 20.00,
+      "confidence": 0.75,
+      "target_transaction": "0xabc...",
+      "suggested_gas_price": 50.0,
+      "execution_details": {
+        "target_pool": "0x...",
+        "token_in": "0x...",
+        "token_out": "0x...",
+        "amount_in": "1000.0",
+        "expected_profit": "20.0"
+      },
+      "expires_in_blocks": 1
+    }
+  ],
+  "timestamp": "2025-11-02T10:30:00Z",
+  "cache_hit": false,
+  "data_source": "ethereum-mempool",
   "request_id": "uuid-here"
 }
 ```
