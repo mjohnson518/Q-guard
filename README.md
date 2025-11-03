@@ -8,7 +8,9 @@ Q-guard is an Ethereum analytics API demonstrating the x402 micropayment protoco
 
 **Key Features:**
 - Real-time gas prediction with exponential weighted average algorithm
-- x402 micropayment integration ($0.01 USDC per request)
+- x402 micropayment integration with tiered pricing
+- ERC-8004 agent reputation for dynamic pricing (up to 50% discounts)
+- MEV opportunity detection (sandwich attacks, arbitrage)
 - Payment verification via onchain USDC transactions
 - Redis caching for < 200ms response times
 - WebSocket dashboard for real-time monitoring
@@ -259,6 +261,56 @@ curl -H "X-Payment: 0x<transaction_hash>" \
 }
 ```
 
+## Agent Reputation System
+
+Q-guard implements ERC-8004 agent reputation for dynamic pricing. Agents with higher reputation scores receive discounts on all endpoints.
+
+### Reputation Tiers
+
+- **0-99:** Access denied
+- **100-500:** Standard pricing
+- **501-1000:** 20% discount
+- **1000+:** 50% discount
+
+### Using Reputation
+
+Include your agent address in requests using the `X-Agent-Address` header:
+
+```bash
+curl -H "X-Agent-Address: 0x2222222222222222222222222222222222222222" \
+     -H "X-Payment: 0x<tx_hash>" \
+     http://localhost:8080/api/gas/prediction
+```
+
+The system will:
+1. Extract your agent address
+2. Query your reputation score (cached 1 hour)
+3. Calculate your discounted price
+4. Verify payment meets discounted amount
+5. Grant access to data
+
+### Test Addresses (Mock Mode)
+
+When no ERC-8004 contract is deployed, these addresses have fixed reputation scores:
+
+- `0x1111111111111111111111111111111111111111` - Reputation: 100 (minimum access, full price)
+- `0x2222222222222222222222222222222222222222` - Reputation: 500 (standard pricing)
+- `0x3333333333333333333333333333333333333333` - Reputation: 1000 (20% discount)
+
+### Pricing Examples
+
+**Gas Prediction (base $0.01):**
+- Anonymous: $0.01
+- Reputation 250: $0.01
+- Reputation 750: $0.008 (20% off)
+- Reputation 1500: $0.005 (50% off)
+
+**MEV Opportunities (base $0.10):**
+- Anonymous: $0.10
+- Reputation 250: $0.10
+- Reputation 750: $0.08 (20% off)
+- Reputation 1500: $0.05 (50% off)
+
 ## x402 Payment Flow
 
 ### For API Consumers
@@ -441,18 +493,25 @@ Q-guard/
 │   ├── error.rs          # Custom error types
 │   ├── models/           # Data models
 │   │   ├── gas.rs
+│   │   ├── mev.rs
 │   │   ├── payment.rs
 │   │   └── response.rs
 │   ├── services/         # Business logic
 │   │   ├── cache.rs      # Redis + moka cache
 │   │   ├── ethereum.rs   # Gas prediction
+│   │   ├── mempool.rs    # Mempool monitoring
+│   │   ├── mev_detector.rs # MEV detection
 │   │   ├── analytics.rs  # Payment tracking
-│   │   └── reputation.rs # ERC-8004 (mocked)
+│   │   └── reputation.rs # ERC-8004 reputation
+│   ├── contracts/        # Smart contract ABIs
+│   │   └── agent_registry.rs # ERC-8004 interface
 │   ├── middleware/       # Request middleware
 │   │   ├── x402.rs       # Payment verification
+│   │   ├── reputation.rs # Agent identification
 │   │   └── rate_limit.rs # Rate limiting
 │   ├── handlers/         # HTTP handlers
 │   │   ├── gas.rs
+│   │   ├── mev.rs
 │   │   ├── health.rs
 │   │   ├── stats.rs
 │   │   └── dashboard.rs
