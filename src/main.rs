@@ -44,14 +44,48 @@ async fn main() -> Result<()> {
     let analytics = Arc::new(Analytics::new(cache.clone()));
     let _reputation = Arc::new(MockReputationService::new());
     
-    // Initialize x402 middleware
-    let x402 = Arc::new(
+    // Initialize MEV services (optional - requires WebSocket)
+    // For now, using a placeholder - in production, configure ETH_WS_URL in .env
+    let eth_ws_url = std::env::var("ETH_WS_URL")
+        .unwrap_or_else(|_| "wss://eth-mainnet.g.alchemy.com/v2/demo".to_string());
+    
+    let mempool = Arc::new(
+        MempoolService::new(&eth_ws_url)
+            .await
+            .unwrap_or_else(|e| {
+                tracing::warn!("Mempool service unavailable: {}", e);
+                panic!("WebSocket required for MEV endpoint. Set ETH_WS_URL in .env");
+            })
+    );
+    
+    // Start mempool monitoring in background
+    let mempool_clone = mempool.clone();
+    tokio::spawn(async move {
+        mempool_clone.start_monitoring().await;
+    });
+    
+    let mev_detector = Arc::new(MEVDetector::new(ethereum.clone()));
+    
+    // Initialize x402 middleware for gas prediction ($0.01)
+    let x402_gas = Arc::new(
         X402Middleware::new(
             config.facilitator_url.clone(),
             config.base_sepolia_rpc_url.clone(),
             config.recipient_address,
             config.usdc_address,
-            "0.01".to_string(), // $0.01 USDC
+            "0.01".to_string(),
+        )
+        .await?,
+    );
+    
+    // Initialize x402 middleware for MEV ($0.10)
+    let x402_mev = Arc::new(
+        X402Middleware::new(
+            config.facilitator_url.clone(),
+            config.base_sepolia_rpc_url.clone(),
+            config.recipient_address,
+            config.usdc_address,
+            "0.10".to_string(),
         )
         .await?,
     );
@@ -59,6 +93,13 @@ async fn main() -> Result<()> {
     // Build application state
     let app_state = AppState {
         ethereum: ethereum.clone(),
+        analytics: analytics.clone(),
+    };
+    
+    let mev_state = MEVState {
+        ethereum: ethereum.clone(),
+        mempool: mempool.clone(),
+        mev_detector: mev_detector.clone(),
         analytics: analytics.clone(),
     };
     
@@ -85,7 +126,7 @@ async fn main() -> Result<()> {
             "/api/gas/prediction",
             get(predict_gas)
                 .layer(axum_middleware::from_fn({
-                    let x402 = x402.clone();
+                    let x402 = x402_gas.clone();
                     move |req, next| {
                         let x402 = x402.clone();
                         async move { x402_middleware_layer(x402, req, next).await }
@@ -93,6 +134,19 @@ async fn main() -> Result<()> {
                 })),
         )
         .with_state(app_state)
+        
+        .route(
+            "/api/mev/opportunities",
+            get(get_mev_opportunities)
+                .layer(axum_middleware::from_fn({
+                    let x402 = x402_mev.clone();
+                    move |req, next| {
+                        let x402 = x402.clone();
+                        async move { x402_middleware_layer(x402, req, next).await }
+                    }
+                })),
+        )
+        .with_state(mev_state)
         
         // Global middleware
         .layer(create_rate_limit_layer(
